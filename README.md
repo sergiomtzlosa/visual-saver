@@ -4,6 +4,8 @@ VisualSaver is a macOS (SwiftUI) utility that shows **every screen saver this Ma
 knows about** — classic `.saver` plugins, the built-in ExtensionKit providers and
 the individual Aerial videos — together with their **configuration preferences**.
 
+![Visualsaver preview](preview.png)
+
 ## What it lists (grouped in the sidebar)
 
 | Group | Source | Count on this Mac |
