@@ -1,0 +1,58 @@
+name: Build and Release Xcode Binary
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers when pushing tags like v1.0.0
+
+permissions:
+  contents: write # Required to create releases and upload assets
+
+env:
+  PROJECT_FILE: VisualSaver.xcodeproj
+  SCHEME: VisualSaver
+  APP_NAME: VisualSaver
+  BINARY_NAME: VisualSaver
+  CONFIGURATION: Release
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build (Release)
+        run: |
+          xcodebuild \
+            -project "$PROJECT_FILE" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -derivedDataPath build/DerivedDataRelease \
+            build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package app binary and source archive
+        run: |
+          APP_PATH="build/DerivedDataRelease/Build/Products/$CONFIGURATION/$APP_NAME.app"
+          BINARY_PATH="$APP_PATH/Contents/MacOS/$BINARY_NAME"
+          test -d "$APP_PATH"
+          test -f "$BINARY_PATH"
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # 1. Zip the compiled .app bundle
+          ditto -c -k --keepParent "$APP_PATH" "$BINARY_NAME-$VERSION-macos.zip"
+
+          # 2. Create a clean source code .tar.gz from Git HEAD
+          git archive --format=tar.gz --prefix="$BINARY_NAME-$VERSION/" -o "$BINARY_NAME-$VERSION-source.tar.gz" HEAD
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.BINARY_NAME }}-*-macos.zip
+            ${{ env.BINARY_NAME }}-*-source.tar.gz
+          generate_release_notes: true
+          fail_on_unmatched_files: true
